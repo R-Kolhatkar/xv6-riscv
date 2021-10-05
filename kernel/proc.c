@@ -654,3 +654,33 @@ procdump(void)
     printf("\n");
   }
 }
+
+int info(int parameter){
+    switch(parameter){
+      case 1:
+        
+          struct proc *p;
+          int count = 0;
+
+          //acquire(&ptable.lock);
+
+          for(p = proc; p < &proc[NPROC]; p++)
+          {
+            if(p->state != UNUSED)
+                count++;
+          }
+
+          //release(&ptable.lock);
+
+            return count;
+
+      case 2:
+        return 0;    
+      case 3: 
+        return 0;
+  
+return 0;
+    }
+
+
+}
