@@ -656,31 +656,23 @@ procdump(void)
 }
 
 int info(int parameter){
+  int count = 0;
     switch(parameter){
       case 1:
-        
           struct proc *p;
-          int count = 0;
-
-          //acquire(&ptable.lock);
-
           for(p = proc; p < &proc[NPROC]; p++)
           {
-            if(p->state != UNUSED)
-                count++;
+            acquire(&p->lock);
+            if(p->state != UNUSED){
+                count = count + 1;
           }
-
-          //release(&ptable.lock);
-
+          release(&p->lock);
+          }
+            printf("count: %d\n", count);
             return count;
-
       case 2:
-        return 0;    
-      case 3: 
-        return 0;
-  
-return 0;
+        return our_count;
+      case 3:
     }
-
-
+return count;
 }

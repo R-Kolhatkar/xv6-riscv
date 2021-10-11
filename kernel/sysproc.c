@@ -99,6 +99,6 @@ sys_uptime(void)
 uint64 sys_info(void){
   int n;
   argint(0, &n);
-  info(n);
-  return 0; 
+  return info(n);
+   
 }

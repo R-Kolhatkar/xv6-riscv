@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]){
     if (argc == 2){
         int i = atoi(argv[1]);
-        printf("%d", info(i));
+        printf("info return: %d", info(i));
     }
     else {printf("Too many argumnets");}
 
