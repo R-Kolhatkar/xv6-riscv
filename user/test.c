@@ -9,7 +9,7 @@ int main(int argc, char *argv[]){
         int i = atoi(argv[1]);
         printf("info return: %d", info(i));
     }
-    else {printf("Too many argumnets");}
+    else {printf("Too many arguments");}
 
     exit(0);
 }

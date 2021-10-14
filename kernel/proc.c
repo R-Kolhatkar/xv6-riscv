@@ -676,9 +676,12 @@ int info(int parameter){
       case 2:
         return p->sys_calls;
       case 3:
-        int pages;
-        pages = p->sz;
-        return (pages/4096);
+        if(p->sz % PGSIZE== 0) {
+          return (p->sz/PGSIZE); 
+        } else {
+          return (p->sz/PGSIZE) + 1;
+        }
+        
         
 
         
