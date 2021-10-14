@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -657,9 +658,11 @@ procdump(void)
 
 int info(int parameter){
   int count = 0;
+  struct proc *p = myproc();
     switch(parameter){
+      //struct proc *p = myproc();
       case 1:
-          struct proc *p;
+          //struct proc *p;
           for(p = proc; p < &proc[NPROC]; p++)
           {
             acquire(&p->lock);
@@ -671,8 +674,14 @@ int info(int parameter){
             printf("count: %d\n", count);
             return count;
       case 2:
-        return our_count;
+        return p->sys_calls;
       case 3:
+        int pages;
+        pages = p->sz;
+        return (pages/4096);
+        
+
+        
     }
 return count;
 }

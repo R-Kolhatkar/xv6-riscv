@@ -136,11 +136,10 @@ syscall(void)
 {
   int num;
   struct proc *p = myproc();
-  int our_count;
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     p->trapframe->a0 = syscalls[num]();
-    our_count++;
+    p->sys_calls++;
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
