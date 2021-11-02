@@ -7,9 +7,9 @@ int main(int argc, char *argv[]){
     sbrk(16384);
     if (argc == 2){
         int i = atoi(argv[1]);
-        printf("info return: %d", info(i));
+        printf("%d /n", info(i));
     }
-    else {printf("Too many arguments");}
+    else {printf("Too many argumnets");}
 
     exit(0);
 }

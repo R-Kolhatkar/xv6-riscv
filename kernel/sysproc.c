@@ -100,5 +100,4 @@ uint64 sys_info(void){
   int n;
   argint(0, &n);
   return info(n);
-   
 }

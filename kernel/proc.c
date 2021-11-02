@@ -660,9 +660,7 @@ int info(int parameter){
   int count = 0;
   struct proc *p = myproc();
     switch(parameter){
-      //struct proc *p = myproc();
       case 1:
-          //struct proc *p;
           for(p = proc; p < &proc[NPROC]; p++)
           {
             acquire(&p->lock);
@@ -671,20 +669,17 @@ int info(int parameter){
           }
           release(&p->lock);
           }
-            printf("count: %d\n", count);
             return count;
       case 2:
         return p->sys_calls;
       case 3:
-        if(p->sz % PGSIZE== 0) {
-          return (p->sz/PGSIZE); 
-        } else {
+        if (p->sz % PGSIZE == 0){
+          return(p->sz/PGSIZE);
+        }
+        else {
           return (p->sz/PGSIZE) + 1;
         }
-        
-        
-
-        
+      
     }
 return count;
 }
