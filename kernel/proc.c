@@ -5,7 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-
+#include "rand.c"
 
 struct cpu cpus[NCPU];
 
@@ -442,13 +442,34 @@ scheduler(void)
   struct cpu *c = mycpu();
   
   c->proc = 0;
+  #ifdef LOTTERY
+  
+  #endif
+  #ifdef STRIDE
+  #endif
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
+    //int random = random_at_most(100);
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if(p->state == RUNNABLE) 
+      { 
+        #ifdef LOTTERY
+        int random = random_at_most(20);
+        if (p->num_tickets == random){
+        p->state = RUNNING;
+        p->given_cpu++; //added to keep track of how often the process is scheduled. 
+        c->proc = p;
+        swtch(&c->context, &p->context);
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        }
+        #endif
+      
+
+        #ifdef REGULAR
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -459,10 +480,12 @@ scheduler(void)
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
-      }
-      release(&p->lock);
+        
+        #endif
     }
+      release(&p->lock);
   }
+}
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -682,4 +705,13 @@ int info(int parameter){
       
     }
 return count;
+}
+
+void tickets(int number){
+  struct proc *p = myproc();
+  p->num_tickets = number;
+}
+void sched_statistics(void){
+  struct  proc *p = myproc();
+  printf("Process: %d", p->given_cpu);
 }

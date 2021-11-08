@@ -101,3 +101,16 @@ uint64 sys_info(void){
   argint(0, &n);
   return info(n);
 }
+
+uint64 sys_tickets(void){
+  int n;
+  argint(0, &n);
+  tickets(n);
+  return 0;
+}
+uint64 sys_statistics(void){
+  int n;
+  argint(0, &n);
+  sched_statistics();
+  return 0;
+}

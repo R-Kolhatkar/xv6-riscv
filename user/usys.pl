@@ -37,3 +37,5 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 entry("info");
+entry("sched_statistics");
+entry("tickets");
