@@ -82,7 +82,7 @@ argstr(int n, char *buf, int max)
     return -1;
   return fetchstr(addr, buf, max);
 }
-
+extern int total_tickets;
 extern uint64 sys_chdir(void);
 extern uint64 sys_close(void);
 extern uint64 sys_dup(void);

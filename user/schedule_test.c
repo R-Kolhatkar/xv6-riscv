@@ -3,7 +3,7 @@
 #include "user.h"
 int main(int argc, char *argv[])
 {
- ticket(argv[2]); // write your own function here
+ tickets(atoi(argv[1])); // write your own function here
  int i,k;
  const int loop=100000; // adjust this parameter depending on your system speed
  for(i=0;i<loop;i++)

@@ -108,7 +108,7 @@ uint64 sys_tickets(void){
   tickets(n);
   return 0;
 }
-uint64 sys_statistics(void){
+uint64 sys_sched_statistics(void){
   int n;
   argint(0, &n);
   sched_statistics();

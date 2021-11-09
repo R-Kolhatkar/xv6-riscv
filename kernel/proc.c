@@ -12,7 +12,7 @@ struct cpu cpus[NCPU];
 struct proc proc[NPROC];
 
 struct proc *initproc;
-
+int total_tickets = 100;
 int nextpid = 1;
 struct spinlock pid_lock;
 
@@ -457,11 +457,14 @@ scheduler(void)
       { 
         #ifdef LOTTERY
         int random = random_at_most(20);
-        if (p->num_tickets == random){
+        for (int i = 0; i < p->num_tickets; i++){
+        if (p->ticket_array[i] == random){
         p->state = RUNNING;
         p->given_cpu++; //added to keep track of how often the process is scheduled. 
         c->proc = p;
         swtch(&c->context, &p->context);
+        }
+        
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
@@ -709,7 +712,13 @@ return count;
 
 void tickets(int number){
   struct proc *p = myproc();
+  int ticket_range = 100 - total_tickets;
+  total_tickets = total_tickets - number;
   p->num_tickets = number;
+  for (int i = 1; i <= number; i++)
+  {
+    p->ticket_array[i] = i + ticket_range;
+  }
 }
 void sched_statistics(void){
   struct  proc *p = myproc();
