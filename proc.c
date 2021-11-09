@@ -14,7 +14,7 @@ struct proc proc[NPROC];
 struct proc *initproc;
 int total_tickets = 100;
 
-int minPass = 1;
+int minPass = 100000;
 struct proc *minProc;
 
 int nextpid = 1;
@@ -442,7 +442,7 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p = proc;
   struct cpu *c = mycpu();
   
   c->proc = 0;
@@ -451,34 +451,21 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
     //int random = random_at_most(100);
+    
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) 
-      { 
-        #ifdef LOTTERY
-        int random = random_at_most(20);
-        for (int i = 0; i < p->num_tickets; i++){
-        if (p->ticket_array[i] == random){
-        p->state = RUNNING;
-        p->given_cpu++; //added to keep track of how often the process is scheduled. 
-        c->proc = p;
-        swtch(&c->context, &p->context);
-        }
+      {
         
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        }
-        #endif
 
-        #ifdef STRIDE
+        //#ifdef STRIDE
         if(p->pass < minPass) {
           minPass = p->pass;
           minProc = p;
         }
-        #endif
+        // #endif
 
-        #ifdef REGULAR
+        /*#ifdef REGULAR
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -490,19 +477,23 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         c->proc = 0;
         
-        #endif
-    }
+        #endif*/
+      
+      
 
-    #ifdef STRIDE
-    minProc->pass += minProc->stride;
-    minProc->state = RUNNING;
-    c->proc = minProc;
-    swtch(&c->context, &p->context);
-    c->proc = 0;
-    #endif
+      //#ifdef STRIDE
+      minProc->pass += minProc->stride;
+      minProc->state = RUNNING;
+      c->proc = minProc;
+      swtch(&c->context, &p->context);
+      c->proc = 0;
+      //#endif
       release(&p->lock);
+      break;
+      }
+    }
+    
   }
-}
 }
 
 // Switch to scheduler.  Must hold only p->lock
