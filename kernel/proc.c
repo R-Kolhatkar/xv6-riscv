@@ -440,7 +440,6 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
   c->proc = 0;
   #ifdef LOTTERY
   
@@ -455,24 +454,23 @@ scheduler(void)
       acquire(&p->lock);
       if(p->state == RUNNABLE) 
       { 
-        #ifdef LOTTERY
-        int random = random_at_most(20);
+      
+        int random = random_at_most(100);
         for (int i = 0; i < p->num_tickets; i++){
         if (p->ticket_array[i] == random){
         p->state = RUNNING;
         p->given_cpu++; //added to keep track of how often the process is scheduled. 
         c->proc = p;
         swtch(&c->context, &p->context);
-        }
-        
+    
+      
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
         }
-        #endif
-      
-
-        #ifdef REGULAR
+     
+        }
+       
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -484,12 +482,14 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         c->proc = 0;
         
-        #endif
-    }
-      release(&p->lock);
+      //release(&p->lock);
+      //}
+  }
+  release(&p->lock);
+}
   }
 }
-}
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
