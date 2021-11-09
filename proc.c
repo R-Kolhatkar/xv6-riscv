@@ -5,13 +5,17 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-
+#include "rand.c"
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
 struct proc *initproc;
+int total_tickets = 100;
+
+int minPass = 1;
+struct proc *minProc;
 
 int nextpid = 1;
 struct spinlock pid_lock;
@@ -442,13 +446,39 @@ scheduler(void)
   struct cpu *c = mycpu();
   
   c->proc = 0;
+
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
+    //int random = random_at_most(100);
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if(p->state == RUNNABLE) 
+      { 
+        #ifdef LOTTERY
+        int random = random_at_most(20);
+        for (int i = 0; i < p->num_tickets; i++){
+        if (p->ticket_array[i] == random){
+        p->state = RUNNING;
+        p->given_cpu++; //added to keep track of how often the process is scheduled. 
+        c->proc = p;
+        swtch(&c->context, &p->context);
+        }
+        
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        }
+        #endif
+
+        #ifdef STRIDE
+        if(p->pass < minPass) {
+          minPass = p->pass;
+          minProc = p;
+        }
+        #endif
+
+        #ifdef REGULAR
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -459,10 +489,20 @@ scheduler(void)
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
-      }
-      release(&p->lock);
+        
+        #endif
     }
+
+    #ifdef STRIDE
+    minProc->pass += minProc->stride;
+    minProc->state = RUNNING;
+    c->proc = minProc;
+    swtch(&c->context, &p->context);
+    c->proc = 0;
+    #endif
+      release(&p->lock);
   }
+}
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -660,9 +700,7 @@ int info(int parameter){
   int count = 0;
   struct proc *p = myproc();
     switch(parameter){
-      //struct proc *p = myproc();
       case 1:
-          //struct proc *p;
           for(p = proc; p < &proc[NPROC]; p++)
           {
             acquire(&p->lock);
@@ -671,20 +709,35 @@ int info(int parameter){
           }
           release(&p->lock);
           }
-            printf("count: %d\n", count);
             return count;
       case 2:
         return p->sys_calls;
       case 3:
-        if(p->sz % PGSIZE== 0) {
-          return (p->sz/PGSIZE); 
-        } else {
+        if (p->sz % PGSIZE == 0){
+          return(p->sz/PGSIZE);
+        }
+        else {
           return (p->sz/PGSIZE) + 1;
         }
-        
-        
-
-        
+      
     }
 return count;
+}
+
+void tickets(int number){
+  struct proc *p = myproc();
+  int ticket_range = 100 - total_tickets;
+  total_tickets = total_tickets - number;
+  p->num_tickets = number;
+  for (int i = 1; i <= number; i++)
+  {
+    p->ticket_array[i] = i + ticket_range;
+  }
+
+  p->stride = 100000 / number;
+  p->pass = 0;
+}
+void sched_statistics(void){
+  struct  proc *p = myproc();
+  printf("Process: %d", p->given_cpu);
 }
