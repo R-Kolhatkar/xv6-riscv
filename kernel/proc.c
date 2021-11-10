@@ -8,11 +8,10 @@
 #include "rand.c"
 
 struct cpu cpus[NCPU];
-
+struct proc *minProc;
 struct proc proc[NPROC];
 
 struct proc *initproc;
-int total_tickets = 100;
 int nextpid = 1;
 struct spinlock pid_lock;
 
@@ -26,7 +25,10 @@ extern char trampoline[]; // trampoline.S
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
-
+struct {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+} ptable;
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -438,55 +440,75 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
+  //int total_tickets_runable = 0;
   struct proc *p;
   struct cpu *c = mycpu();
+  minProc = 0;
+  //struct proc *minProc = 0;
   c->proc = 0;
-  #ifdef LOTTERY
-  
-  #endif
-  #ifdef STRIDE
-  #endif
+  int minPass = 100000;
   for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-    //int random = random_at_most(100);
+    // Avoid deadlock by ensuring that devices can interrupt.
+    /*
+    int total_tickets_runable = 0;
+    int total_tickets = 0; 
     for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
+    acquire(&p->lock);
       if(p->state == RUNNABLE) 
       { 
-      
-        int random = random_at_most(100);
-        for (int i = 0; i < p->num_tickets; i++){
-        if (p->ticket_array[i] == random){
-        p->state = RUNNING;
-        p->given_cpu++; //added to keep track of how often the process is scheduled. 
-        c->proc = p;
-        swtch(&c->context, &p->context);
+        total_tickets_runable += p->num_tickets;
+      }
+    release(&p->lock);
+    }
+    int random = random_at_most(total_tickets_runable);
+   
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE){
+      total_tickets += p->num_tickets;
+      if(total_tickets>=random){  
+      p->state = RUNNING;
+      p->given_cpu++; //added to keep track of how often the process is scheduled. 
+      c->proc = p;
+      swtch(&c->context, &p->context);
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+      c->proc = 0;
+      }
+    }
     
-      
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        }
-     
-        }
-       
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+    release(&p->lock);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        
-      //release(&p->lock);
-      //}
-  }
-  release(&p->lock);
-}
+      } 
+      }
+      }*/
+      //struct proc *minProc = 0;
+      //int minPass = 100000;
+      acquire(&ptable.lock);
+      for(p = proc; p < &proc[NPROC]; p++){
+      if(p->state == RUNNABLE) 
+      {
+       
+        if(p->pass < minPass) {
+          minPass = p->pass;
+          minProc = p;
+          //printf("%d", minProc->pid);
+          
+      }
+      }
+     
+      }
+      if (minProc){
+      minProc->pass += minProc->stride;
+      p = minProc;
+      p->state = RUNNING;
+      p->given_cpu++;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+      c->proc = 0;  
+      }
+    release(&ptable.lock);
   }
 }
 
@@ -585,6 +607,7 @@ sleep(void *chan, struct spinlock *lk)
 // Must be called without any p->lock.
 void
 wakeup(void *chan)
+
 {
   struct proc *p;
 
@@ -705,22 +728,18 @@ int info(int parameter){
         else {
           return (p->sz/PGSIZE) + 1;
         }
-      
     }
 return count;
 }
 
 void tickets(int number){
   struct proc *p = myproc();
-  int ticket_range = 100 - total_tickets;
-  total_tickets = total_tickets - number;
+  p->stride = 100000 / number;
+  p->pass = 0;
   p->num_tickets = number;
-  for (int i = 1; i <= number; i++)
-  {
-    p->ticket_array[i] = i + ticket_range;
-  }
 }
+
 void sched_statistics(void){
   struct  proc *p = myproc();
-  printf("Process: %d", p->given_cpu);
+  printf("%d \n", p->given_cpu);
 }

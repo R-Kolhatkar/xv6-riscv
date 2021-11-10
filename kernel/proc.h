@@ -107,6 +107,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   int sys_calls;
   int num_tickets;
-  int ticket_array[100];
   int given_cpu;
+  int stride;
+  int pass;
 };
