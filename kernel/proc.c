@@ -488,12 +488,10 @@ scheduler(void)
   for(p = proc; p < &proc[NPROC]; p++)
 	  {
 		acquire(&p->lock);
-		
 		if(p->state == RUNNABLE) 
 		{
 			if(p->pass < minPass) 
 			{
-        //printf("%d", p->pass);
 			  minPass = p->pass;
 			  minProc = p;	
 			}		
@@ -506,20 +504,35 @@ scheduler(void)
 		  acquire(&p->lock);
 		  if (p==minProc &&  p->state == RUNNABLE)
 		  {
-        //p = minProc;
-        printf("%d \n", p->pass);
+        p = minProc;
 			  p->pass += p->stride;
-        //printf("%d \n", p->pass);
-			  //p = minProc;
 			  p->state = RUNNING;
 			  p->given_cpu++;
 			  c->proc = p;
 			  swtch(&c->context,&p->context);
 			  c->proc = 0;
-        //printf("in second for");
 		  }
 		  release(&p->lock);
 	  }
+  #endif
+  #ifdef RR
+  for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        // Switch to chosen process.  It is the process's job
+        // to release its lock and then reacquire it
+        // before jumping back to us.
+        p->state = RUNNING;
+        c->proc = p;
+        p->given_cpu++;
+        swtch(&c->context, &p->context);
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
+      release(&p->lock);
+    }
   #endif
   }
 }
