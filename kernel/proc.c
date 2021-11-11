@@ -10,7 +10,7 @@
 struct cpu cpus[NCPU];
 struct proc *minProc;
 struct proc proc[NPROC];
-
+//int minPass = 100000;
 struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
@@ -443,14 +443,14 @@ scheduler(void)
   //int total_tickets_runable = 0;
   struct proc *p;
   struct cpu *c = mycpu();
-  minProc = 0;
+  //struct proc *minProc = 0;
   //struct proc *minProc = 0;
   c->proc = 0;
-  int minPass = 100000;
+  // int minPass = 100000;
   for(;;){
     intr_on();
     // Avoid deadlock by ensuring that devices can interrupt.
-    /*
+    #ifdef LOTTERY
     int total_tickets_runable = 0;
     int total_tickets = 0; 
     for(p = proc; p < &proc[NPROC]; p++) {
@@ -481,36 +481,49 @@ scheduler(void)
     release(&p->lock);
 
       } 
-      }
-      }*/
-      //struct proc *minProc = 0;
-      //int minPass = 100000;
-      acquire(&ptable.lock);
-      for(p = proc; p < &proc[NPROC]; p++){
-      if(p->state == RUNNABLE) 
-      {
-       
-        if(p->pass < minPass) {
-          minPass = p->pass;
-          minProc = p;
-          //printf("%d", minProc->pid);
-          
-      }
-      }
-     
-      }
-      if (minProc){
-      minProc->pass += minProc->stride;
-      p = minProc;
-      p->state = RUNNING;
-      p->given_cpu++;
-      c->proc = p;
-      swtch(&c->context, &p->context);
-      c->proc = 0;  
-      }
-    release(&ptable.lock);
+    #endif
+#ifdef STRIDE
+ int minPass = 100000;
+ struct proc *minProc = 0;
+  for(p = proc; p < &proc[NPROC]; p++)
+	  {
+		acquire(&p->lock);
+		
+		if(p->state == RUNNABLE) 
+		{
+			if(p->pass < minPass) 
+			{
+        //printf("%d", p->pass);
+			  minPass = p->pass;
+			  minProc = p;	
+			}		
+		}
+		release(&p->lock);
+	  }
+
+		for(p = proc; p < &proc[NPROC]; p++)
+		{
+		  acquire(&p->lock);
+		  if (p==minProc &&  p->state == RUNNABLE)
+		  {
+        //p = minProc;
+        printf("%d \n", p->pass);
+			  p->pass += p->stride;
+        //printf("%d \n", p->pass);
+			  //p = minProc;
+			  p->state = RUNNING;
+			  p->given_cpu++;
+			  c->proc = p;
+			  swtch(&c->context,&p->context);
+			  c->proc = 0;
+        //printf("in second for");
+		  }
+		  release(&p->lock);
+	  }
+  #endif
   }
 }
+
 
 
 // Switch to scheduler.  Must hold only p->lock
@@ -735,7 +748,7 @@ return count;
 void tickets(int number){
   struct proc *p = myproc();
   p->stride = 100000 / number;
-  p->pass = 0;
+  p->pass = p->stride;
   p->num_tickets = number;
 }
 
