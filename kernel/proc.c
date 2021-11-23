@@ -343,7 +343,7 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
-
+if  (*(p->num_children) == 1){ //added to chack if this process has zero children
   if(p == initproc)
     panic("init exiting");
 
@@ -379,6 +379,10 @@ exit(int status)
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
+}
+else { 
+  *(p->num_children)--; //decrement the number of children?
+  }
 }
 
 // Wait for a child process to exit and return its pid.
@@ -450,72 +454,72 @@ scheduler(void)
   for(;;){
     intr_on();
     // Avoid deadlock by ensuring that devices can interrupt.
-    #ifdef LOTTERY
-    int total_tickets_runable = 0;
-    int total_tickets = 0; 
-    for(p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
-      if(p->state == RUNNABLE) 
-      { 
-        total_tickets_runable += p->num_tickets;
-      }
-    release(&p->lock);
-    }
-    int random = random_at_most(total_tickets_runable);
+   // #ifdef LOTTERY
+    // int total_tickets_runable = 0;
+    // int total_tickets = 0; 
+    // for(p = proc; p < &proc[NPROC]; p++) {
+    // acquire(&p->lock);
+    //   if(p->state == RUNNABLE) 
+    //   { 
+    //     total_tickets_runable += p->num_tickets;
+    //   }
+    // release(&p->lock);
+    // }
+    // int random = random_at_most(total_tickets_runable);
    
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE){
-      total_tickets += p->num_tickets;
-      if(total_tickets>=random){  
-      p->state = RUNNING;
-      p->given_cpu++; //added to keep track of how often the process is scheduled. 
-      c->proc = p;
-      swtch(&c->context, &p->context);
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-      c->proc = 0;
-      }
-    }
+    // for(p = proc; p < &proc[NPROC]; p++) {
+    //   acquire(&p->lock);
+    //   if(p->state == RUNNABLE){
+    //   total_tickets += p->num_tickets;
+    //   if(total_tickets>=random){  
+    //   p->state = RUNNING;
+    //   p->given_cpu++; //added to keep track of how often the process is scheduled. 
+    //   c->proc = p;
+    //   swtch(&c->context, &p->context);
+    //     // Process is done running for now.
+    //     // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    //   }
+    // }
     
-    release(&p->lock);
+    // release(&p->lock);
 
-      } 
-    #endif
-#ifdef STRIDE
- int minPass = 100000;
- struct proc *minProc = 0;
-  for(p = proc; p < &proc[NPROC]; p++)
-	  {
-		acquire(&p->lock);
-		if(p->state == RUNNABLE) 
-		{
-			if(p->pass < minPass) 
-			{
-			  minPass = p->pass;
-			  minProc = p;	
-			}		
-		}
-		release(&p->lock);
-	  }
+      //} 
+   // #endif
+// #ifdef STRIDE
+//  int minPass = 100000;
+//  struct proc *minProc = 0;
+//   for(p = proc; p < &proc[NPROC]; p++)
+// 	  {
+// 		acquire(&p->lock);
+// 		if(p->state == RUNNABLE) 
+// 		{
+// 			if(p->pass < minPass) 
+// 			{
+// 			  minPass = p->pass;
+// 			  minProc = p;	
+// 			}		
+// 		}
+// 		release(&p->lock);
+// 	  }
 
-		for(p = proc; p < &proc[NPROC]; p++)
-		{
-		  acquire(&p->lock);
-		  if (p==minProc &&  p->state == RUNNABLE)
-		  {
-        p = minProc;
-			  p->pass += p->stride;
-			  p->state = RUNNING;
-			  p->given_cpu++;
-			  c->proc = p;
-			  swtch(&c->context,&p->context);
-			  c->proc = 0;
-		  }
-		  release(&p->lock);
-	  }
-  #endif
-  #ifdef RR
+// 		for(p = proc; p < &proc[NPROC]; p++)
+// 		{
+// 		  acquire(&p->lock);
+// 		  if (p==minProc &&  p->state == RUNNABLE)
+// 		  {
+//         p = minProc;
+// 			  p->pass += p->stride;
+// 			  p->state = RUNNING;
+// 			  p->given_cpu++;
+// 			  c->proc = p;
+// 			  swtch(&c->context,&p->context);
+// 			  c->proc = 0;
+// 		  }
+// 		  release(&p->lock);
+// 	  }
+//   #endif
+//   #ifdef RR
   for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -533,7 +537,7 @@ scheduler(void)
       }
       release(&p->lock);
     }
-  #endif
+  //#endif
   }
 }
 
@@ -768,4 +772,68 @@ void tickets(int number){
 void sched_statistics(void){
   struct  proc *p = myproc();
   printf("%d \n", p->given_cpu);
+}
+int clone(void* stack, int size){ //stack is the location of the child stack? What is the childs user stack? what is the
+//parent address space
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+  if (stack == 0 || size == 0){ //check for valid stack and size
+    return -1;
+  }
+
+
+  // Copy user memory from parent to child.
+  // if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  //   freeproc(np);
+  //   release(&np->lock);
+  //   return -1;
+  // }
+  np->pagetable = p->pagetable; //child and parent share an address space?
+
+  *(np->trapframe) = *(p->trapframe); //copy the parents trapframe
+
+  // np->pagetable = walk(p->pagetable, p->kstack, ???); //TODO: making a user stack for the clone?? //&(p->trapframe->kernel_sp);
+  // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
+
+  np->trapframe->sp = stack; //TODO is sp, stack pointer???, how to make the size??
+  
+   for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
+    if(p->ofile[fd]){
+      np->ofile[fd] = p->ofile[fd];
+    }
+  }
+
+  np->trapframe->a0 = 0;// Cause fork to return 0 in the child.
+  
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+
+  release(&np->lock);
+
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+  *(p->num_children)++;
+  return pid;
+}
+int thread_create(void*(*start_routine)(void*), void *arg){
+
 }

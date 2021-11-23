@@ -26,6 +26,7 @@ int uptime(void);
 int info(int);
 void sched_statistics(void);
 void tickets(int);
+void lock(lock_t *);
 
 // ulib.c
 int stat(const char*, struct stat*);

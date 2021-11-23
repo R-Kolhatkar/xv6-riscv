@@ -23,3 +23,5 @@
 #define SYS_info   22
 #define SYS_tickets 23
 #define SYS_sched_statistics 24
+#define SYS_clone 25
+#define SYS_thread_create 26

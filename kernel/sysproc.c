@@ -114,3 +114,14 @@ uint64 sys_sched_statistics(void){
   sched_statistics();
   return 0;
 }
+uint64 sys_clone(void){
+  // uint64 p;
+  // int n;
+  // argint(0, &n);
+  // argaddr(0, &p);
+  return clone(myproc()->kstack,myproc()->sz); 
+}
+uint64 sys_thread_create(void)
+{
+  
+}
