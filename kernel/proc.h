@@ -48,7 +48,7 @@ struct trapframe {
   /*  24 */ uint64 epc;           // saved user program counter
   /*  32 */ uint64 kernel_hartid; // saved kernel tp
   /*  40 */ uint64 ra;
-  /*  48 */ uint64 sp;
+  /*  48 */ uint64 sp; //stack pointer?
   /*  56 */ uint64 gp;
   /*  64 */ uint64 tp;
   /*  72 */ uint64 t0;
@@ -56,7 +56,7 @@ struct trapframe {
   /*  88 */ uint64 t2;
   /*  96 */ uint64 s0;
   /* 104 */ uint64 s1;
-  /* 112 */ uint64 a0;
+  /* 112 */ uint64 a0; //what is returned when the processes finishes. 
   /* 120 */ uint64 a1;
   /* 128 */ uint64 a2;
   /* 136 */ uint64 a3;
@@ -85,7 +85,7 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
   struct spinlock lock;
-
+  struct spinlock lock_t;
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   void *chan;                  // If non-zero, sleeping on chan
@@ -110,4 +110,5 @@ struct proc {
   int given_cpu;
   int stride;
   int pass;
+  int *num_children; //needs to be shraed because the parent may not be the last to exit
 };

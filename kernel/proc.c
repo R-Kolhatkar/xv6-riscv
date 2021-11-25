@@ -317,7 +317,7 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
-
+  np->num_children = 0;
   return pid;
 }
 
@@ -343,11 +343,12 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
-if  (*(p->num_children) == 1){ //added to chack if this process has zero children
+// if  (*(p->num_children) == 0){ //added to chack if this process has zero children
   if(p == initproc)
     panic("init exiting");
 
   // Close all open files.
+  // if  (*(p->num_children) == 1){ 
   for(int fd = 0; fd < NOFILE; fd++){
     if(p->ofile[fd]){
       struct file *f = p->ofile[fd];
@@ -355,7 +356,7 @@ if  (*(p->num_children) == 1){ //added to chack if this process has zero childre
       p->ofile[fd] = 0;
     }
   }
-
+  
   begin_op();
   iput(p->cwd);
   end_op();
@@ -370,20 +371,22 @@ if  (*(p->num_children) == 1){ //added to chack if this process has zero childre
   wakeup(p->parent);
   
   acquire(&p->lock);
-
+  
   p->xstate = status;
   p->state = ZOMBIE;
-
+   //added to chack if this process has zero children
+if  (*(p->num_children) == 0){
   release(&wait_lock);
 
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
-}
+}  
 else { 
   *(p->num_children)--; //decrement the number of children?
   }
 }
+
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
@@ -773,6 +776,7 @@ void sched_statistics(void){
   struct  proc *p = myproc();
   printf("%d \n", p->given_cpu);
 }
+
 int clone(void* stack, int size){ //stack is the location of the child stack? What is the childs user stack? what is the
 //parent address space
   int i, pid;
@@ -787,6 +791,7 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
     return -1;
   }
 
+  np->sz = p->sz; 
 
   // Copy user memory from parent to child.
   // if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
@@ -802,7 +807,7 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
 
   np->trapframe->sp = stack; //TODO is sp, stack pointer???, how to make the size??
-  
+
    for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
     if(p->ofile[fd]){
       np->ofile[fd] = p->ofile[fd];
