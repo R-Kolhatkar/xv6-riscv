@@ -25,3 +25,4 @@
 #define SYS_sched_statistics 24
 #define SYS_clone 25
 #define SYS_thread_create 26
+#define SYS_allocproc_thread 27

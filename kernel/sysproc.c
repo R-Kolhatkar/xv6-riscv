@@ -121,7 +121,7 @@ uint64 sys_clone(void){
   // argaddr(0, &p);
   return clone(myproc()->kstack,myproc()->sz); 
 }
-uint64 sys_thread_create(void)
+uint64 allocproc_thread(void)
 {
-  
+  return allocproc_thread();
 }

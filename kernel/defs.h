@@ -108,6 +108,8 @@ void            procdump(void);
 int             info(int parameter); 
 void            sched_statistics(void);
 void            tickets(int);
+static struct proc* allocproc_thread(void);
+int             clone(void* stack, int size);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -186,6 +188,12 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
+//thread_library
+int     thread_create(void*(*start_routine)(void*), void *arg);
+void            lock_init(struct spinlock *lock_t);
+void            lock_acquire(struct spinlock *lock_t);
+void            lock_release(struct spinlock *lock_t); 
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

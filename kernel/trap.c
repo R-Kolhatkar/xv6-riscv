@@ -125,7 +125,12 @@ usertrapret(void)
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.
   uint64 fn = TRAMPOLINE + (userret - trampoline);
+  if (p->thread_ID == 0){
   ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);
+  }
+  else {
+    ((void (*)(uint64,uint64))fn)(TRAPFRAME - PGSIZE * (p->thread_ID), satp);
+  }
 }
 
 // interrupts and exceptions from kernel code go here via kernelvec,

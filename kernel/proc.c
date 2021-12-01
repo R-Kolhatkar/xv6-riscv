@@ -194,6 +194,9 @@ proc_pagetable(struct proc *p)
   // map the trapframe just below TRAMPOLINE, for trampoline.S.
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
               (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
+    if (p->thread_ID > 0){
+      uvmunmap(pagetable, TRAPFRAME - PGSIZE * (p->thread_ID), 1, 0);
+    }
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmfree(pagetable, 0);
     return 0;
@@ -375,16 +378,16 @@ exit(int status)
   p->xstate = status;
   p->state = ZOMBIE;
    //added to chack if this process has zero children
-if  (*(p->num_children) == 0){
+// if  (*(p->num_children) == 0){
   release(&wait_lock);
 
   // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
-}  
-else { 
-  *(p->num_children)--; //decrement the number of children?
-  }
+// }  
+// else { 
+//   *(p->num_children)--; //decrement the number of children?
+//   }
 }
 
 
@@ -784,7 +787,7 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   struct proc *p = myproc();
 
   // Allocate process.
-  if((np = allocproc()) == 0){
+  if((np = allocproc_thread()) == 0){
     return -1;
   }
   if (stack == 0 || size == 0){ //check for valid stack and size
@@ -800,13 +803,13 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   //   return -1;
   // }
   np->pagetable = p->pagetable; //child and parent share an address space?
-
+  np->thread_ID = p->num_children + 1;
   *(np->trapframe) = *(p->trapframe); //copy the parents trapframe
 
   // np->pagetable = walk(p->pagetable, p->kstack, ???); //TODO: making a user stack for the clone?? //&(p->trapframe->kernel_sp);
   // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
 
-  np->trapframe->sp = stack; //TODO is sp, stack pointer???, how to make the size??
+  np->trapframe->sp = stack + size; //TODO is sp, stack pointer???, how to make the size??
 
    for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
     if(p->ofile[fd]){
@@ -839,6 +842,44 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   *(p->num_children)++;
   return pid;
 }
-int thread_create(void*(*start_routine)(void*), void *arg){
+static struct proc* allocproc_thread(void)
+{
+  struct proc *p;
 
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == UNUSED) {
+      goto found;
+    } else {
+      release(&p->lock);
+    }
+  }
+  return 0;
+
+found:
+  p->pid = allocpid();
+  p->state = USED;
+
+  // Allocate a trapframe page.
+  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  // An empty user page table.
+  // p->pagetable = proc_pagetable(p);
+  // if(p->pagetable == 0){
+  //   freeproc(p);
+  //   release(&p->lock);
+  //   return 0;
+  // }
+
+  // Set up new context to start executing at forkret,
+  // which returns to user space.
+  memset(&p->context, 0, sizeof(p->context));
+  p->context.ra = (uint64)forkret;
+  p->context.sp = p->kstack + PGSIZE;
+
+  return p;
 }
