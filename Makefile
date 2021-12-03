@@ -133,6 +133,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_test\
 	$U/_schedule_test\
+	$U/_frisbee\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

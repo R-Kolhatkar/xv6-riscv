@@ -39,3 +39,4 @@ entry("uptime");
 entry("info");
 entry("sched_statistics");
 entry("tickets");
+entry("clone");

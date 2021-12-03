@@ -116,12 +116,13 @@ uint64 sys_sched_statistics(void){
 }
 uint64 sys_clone(void){
   // uint64 p;
-  // int n;
-  // argint(0, &n);
+  int n;
+  argint(0, &n);
   // argaddr(0, &p);
-  return clone(myproc()->kstack,myproc()->sz); 
+  return clone(&(myproc()->trapframe->sp), n); 
 }
-uint64 allocproc_thread(void)
-{
-  return allocproc_thread();
-}
+// uint64 sys_allocproc_thread(void)
+// {
+
+//   return allocproc_thread();
+// }

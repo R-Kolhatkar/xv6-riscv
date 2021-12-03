@@ -131,11 +131,13 @@ found:
   }
 
   // An empty user page table.
+  if (p->thread_ID <= 0){
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
     freeproc(p);
     release(&p->lock);
     return 0;
+  }
   }
 
   // Set up new context to start executing at forkret,
@@ -787,7 +789,7 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   struct proc *p = myproc();
 
   // Allocate process.
-  if((np = allocproc_thread()) == 0){
+  if((np = allocproc()) == 0){
     return -1;
   }
   if (stack == 0 || size == 0){ //check for valid stack and size
@@ -803,13 +805,13 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   //   return -1;
   // }
   np->pagetable = p->pagetable; //child and parent share an address space?
-  np->thread_ID = p->num_children + 1;
+  np->thread_ID = p->num_children++;
   *(np->trapframe) = *(p->trapframe); //copy the parents trapframe
 
   // np->pagetable = walk(p->pagetable, p->kstack, ???); //TODO: making a user stack for the clone?? //&(p->trapframe->kernel_sp);
   // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
 
-  np->trapframe->sp = stack + size; //TODO is sp, stack pointer???, how to make the size??
+  np->trapframe->sp = *((int*)stack) + size; //TODO is sp, stack pointer???, how to make the size??
 
    for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
     if(p->ofile[fd]){
@@ -817,7 +819,7 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
     }
   }
 
-  np->trapframe->a0 = 0;// Cause fork to return 0 in the child.
+  np->trapframe->a0 = np->thread_ID;// Cause fork to return 0 in the child.
   
 
   // increment reference counts on open file descriptors.
@@ -839,47 +841,47 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
-  *(p->num_children)++;
+  p->num_children++;
   return pid;
 }
-static struct proc* allocproc_thread(void)
-{
-  struct proc *p;
+// static struct proc* allocproc_thread(void)
+// {
+//   struct proc *p;
 
-  for(p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
-    if(p->state == UNUSED) {
-      goto found;
-    } else {
-      release(&p->lock);
-    }
-  }
-  return 0;
+//   for(p = proc; p < &proc[NPROC]; p++) {
+//     acquire(&p->lock);
+//     if(p->state == UNUSED) {
+//       goto found;
+//     } else {
+//       release(&p->lock);
+//     }
+//   }
+//   return 0;
 
-found:
-  p->pid = allocpid();
-  p->state = USED;
+// found:
+//   p->pid = allocpid();
+//   p->state = USED;
 
-  // Allocate a trapframe page.
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
-    freeproc(p);
-    release(&p->lock);
-    return 0;
-  }
+//   // Allocate a trapframe page.
+//   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+//     freeproc(p);
+//     release(&p->lock);
+//     return 0;
+//   }
 
-  // An empty user page table.
-  // p->pagetable = proc_pagetable(p);
-  // if(p->pagetable == 0){
-  //   freeproc(p);
-  //   release(&p->lock);
-  //   return 0;
-  // }
+//   // An empty user page table.
+//   // p->pagetable = proc_pagetable(p);
+//   // if(p->pagetable == 0){
+//   //   freeproc(p);
+//   //   release(&p->lock);
+//   //   return 0;
+//   // }
 
-  // Set up new context to start executing at forkret,
-  // which returns to user space.
-  memset(&p->context, 0, sizeof(p->context));
-  p->context.ra = (uint64)forkret;
-  p->context.sp = p->kstack + PGSIZE;
+//   // Set up new context to start executing at forkret,
+//   // which returns to user space.
+//   memset(&p->context, 0, sizeof(p->context));
+//   p->context.ra = (uint64)forkret;
+//   p->context.sp = p->kstack + PGSIZE;
 
-  return p;
-}
+//   return p;
+// }

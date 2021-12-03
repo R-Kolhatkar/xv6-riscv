@@ -108,7 +108,7 @@ extern uint64 sys_info(void);
 extern uint64 sys_tickets(void);
 extern uint64 sys_sched_statistics(void);
 extern uint64 sys_clone(void);
-extern uint64 sys_allocproc_thread(void);
+//extern uint64 sys_allocproc_thread(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -136,7 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_tickets] sys_tickets,
 [SYS_sched_statistics] sys_sched_statistics,
 [SYS_clone] sys_clone,
-[SYS_allocproc_thread] sys_allocproc_thread,
+//[SYS_allocproc_thread] sys_allocproc_thread,
 };
 
 void

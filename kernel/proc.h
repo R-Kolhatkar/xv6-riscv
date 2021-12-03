@@ -111,5 +111,5 @@ struct proc {
   int stride;
   int pass;
   int thread_ID;
-  int *num_children; //needs to be shraed because the parent may not be the last to exit
+  int num_children; //needs to be shraed because the parent may not be the last to exit
 };
