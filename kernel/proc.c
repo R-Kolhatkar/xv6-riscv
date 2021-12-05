@@ -131,14 +131,15 @@ found:
   }
 
   // An empty user page table.
-  if (p->thread_ID <= 0){
+  // if (p->thread_ID <= 0){
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
     freeproc(p);
     release(&p->lock);
     return 0;
+  // }
   }
-  }
+
 
   // Set up new context to start executing at forkret,
   // which returns to user space.
@@ -782,7 +783,7 @@ void sched_statistics(void){
   printf("%d \n", p->given_cpu);
 }
 
-int clone(void* stack, int size){ //stack is the location of the child stack? What is the childs user stack? what is the
+int clone(int size){ //stack is the location of the child stack? What is the childs user stack? what is the
 //parent address space
   int i, pid;
   struct proc *np;
@@ -792,26 +793,31 @@ int clone(void* stack, int size){ //stack is the location of the child stack? Wh
   if((np = allocproc()) == 0){
     return -1;
   }
-  if (stack == 0 || size == 0){ //check for valid stack and size
+  // printf("able to allocate proc");
+  if (size == 0){ //check for valid stack and size
     return -1;
   }
 
-  np->sz = p->sz; 
-
+ 
   // Copy user memory from parent to child.
-  // if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-  //   freeproc(np);
-  //   release(&np->lock);
-  //   return -1;
-  // }
-  np->pagetable = p->pagetable; //child and parent share an address space?
-  np->thread_ID = p->num_children++;
-  *(np->trapframe) = *(p->trapframe); //copy the parents trapframe
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
 
+  // printf("able to uvmcopy");
+  uint64 stack = p->trapframe->sp + (uint64)size; 
+  np->sz = p->sz;
+  // np->pagetable = p->pagetable; //child and parent share an address space?
+  p->num_children++;
+  np->thread_ID = p->num_children;
+  *np->trapframe = *p->trapframe; //copy the parents trapframe
+  // np->sz = p->sz;
   // np->pagetable = walk(p->pagetable, p->kstack, ???); //TODO: making a user stack for the clone?? //&(p->trapframe->kernel_sp);
   // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
-
-  np->trapframe->sp = *((int*)stack) + size; //TODO is sp, stack pointer???, how to make the size??
+ 
+  np->trapframe->sp = stack; //TODO is sp, stack pointer???, how to make the size??
 
    for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
     if(p->ofile[fd]){
