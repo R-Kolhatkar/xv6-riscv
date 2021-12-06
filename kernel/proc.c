@@ -783,9 +783,11 @@ void sched_statistics(void){
   printf("%d \n", p->given_cpu);
 }
 
-int clone(int size){ //stack is the location of the child stack? What is the childs user stack? what is the
+int clone(void* stack, int size){ //stack is the location of the child stack? What is the childs user stack? what is the
 //parent address space
-  int i, pid;
+  
+  //int i;
+  int pid;
   struct proc *np;
   struct proc *p = myproc();
 
@@ -800,44 +802,47 @@ int clone(int size){ //stack is the location of the child stack? What is the chi
 
  
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-    freeproc(np);
-    release(&np->lock);
-    return -1;
-  }
-
+  // if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  //   freeproc(np);
+  //   release(&np->lock);
+  //   return -1;
+  // }
+  
   // printf("able to uvmcopy");
-  uint64 stack = p->trapframe->sp + (uint64)size; 
+  // uint64 stack = p->trapframe->sp + (uint64)size; 
   np->sz = p->sz;
-  // np->pagetable = p->pagetable; //child and parent share an address space?
+  np->pagetable = p->pagetable; //child and parent share an address space?
+  
   p->num_children++;
   np->thread_ID = p->num_children;
-  *np->trapframe = *p->trapframe; //copy the parents trapframe
+  *(np->trapframe) = *(p->trapframe);
+   //copy the parents trapframe
   // np->sz = p->sz;
   // np->pagetable = walk(p->pagetable, p->kstack, ???); //TODO: making a user stack for the clone?? //&(p->trapframe->kernel_sp);
   // np->trapframe->epc = (p->trapframe->epc) + 4; //increment the childs PC?
- 
-  np->trapframe->sp = stack; //TODO is sp, stack pointer???, how to make the size??
+  uint64 stack_pointer = (uint64)stack + size;
+  np->trapframe->sp = stack_pointer;
+   //TODO is sp, stack pointer???, how to make the size??
+  //  for(i = 0; i < NOFILE; i++){ //share file discriptions?
+  //   if(p->ofile[i]){
+  //     np->ofile[i] = p->ofile[i];
+  //   }
+  // }
 
-   for(int fd = 0; fd < NOFILE; fd++){ //share file discriptions?
-    if(p->ofile[fd]){
-      np->ofile[fd] = p->ofile[fd];
-    }
-  }
-
-  np->trapframe->a0 = np->thread_ID;// Cause fork to return 0 in the child.
-  
+  np->trapframe->a0 = 0;// Cause fork to return 0 in the child.
+  // printf("%d", np->trapframe->a0);
 
   // increment reference counts on open file descriptors.
-  for(i = 0; i < NOFILE; i++)
-    if(p->ofile[i])
-      np->ofile[i] = filedup(p->ofile[i]);
-  np->cwd = idup(p->cwd);
+  // for(i = 0; i < NOFILE; i++)
+  //   if(p->ofile[i])
+  //     np->ofile[i] = filedup(p->ofile[i]);
+  // np->cwd = idup(p->cwd);
+  *(np->ofile) = *(p->ofile); 
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
-
+ 
   release(&np->lock);
 
   acquire(&wait_lock);
