@@ -115,11 +115,16 @@ uint64 sys_sched_statistics(void){
   return 0;
 }
 uint64 sys_clone(void){
-  // uint64 p;
+  // uint64 * p = &(myproc()->trapframe->sp);
+  void *p; 
   int n;
-  argint(0, &n);
-  // argaddr(0, &p);
-  return clone(&(myproc()->trapframe->sp), n); 
+  argint(1, &n);
+  argaddr(0, (void*)&p);
+  // void* m = &(myproc()->trapframe->sp);
+  return clone(p, n);
+  // clone((int*)(myproc()->trapframe->sp), n); 
+
+  // return 0;
 }
 // uint64 sys_allocproc_thread(void)
 // {
